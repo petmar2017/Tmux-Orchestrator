@@ -164,7 +164,13 @@ api-setup: ## Manual API Builder setup (creates session only)
 .PHONY: api-attach
 api-attach: ## Attach to API Builder session
 	@./attach_api_builder.sh 2>/dev/null || tmux attach -t $(API_SESSION) 2>/dev/null || \
-		echo "$(RED)No API Builder session found. Run 'make api-launch' first$(NC)"
+		echo -e "$(RED)No API Builder session found. Run 'make api-launch' first$(NC)"
+
+.PHONY: api-kill
+api-kill: ## Kill the API Builder session
+	@tmux kill-session -t $(API_SESSION) 2>/dev/null && \
+		echo -e "$(GREEN)✅ API Builder session killed$(NC)" || \
+		echo -e "$(YELLOW)API Builder session not found$(NC)"
 
 .PHONY: api-orchestrator
 api-orchestrator: ## List API Builder windows and attach to orchestrator window
@@ -236,11 +242,11 @@ tmux-windows: ## List windows in a session (use SESSION=name)
 .PHONY: session-kill
 session-kill: ## Kill a tmux session (use SESSION=name)
 	@if [ -z "$(SESSION)" ]; then \
-		echo "$(RED)Usage: make session-kill SESSION=api_builder$(NC)"; \
+		echo -e "$(RED)Usage: make session-kill SESSION=api_builder$(NC)"; \
 	else \
 		tmux kill-session -t $(SESSION) 2>/dev/null && \
-			echo "$(GREEN)✅ Session $(SESSION) killed$(NC)" || \
-			echo "$(YELLOW)Session $(SESSION) not found$(NC)"; \
+			echo -e "$(GREEN)✅ Session $(SESSION) killed$(NC)" || \
+			echo -e "$(YELLOW)Session $(SESSION) not found$(NC)"; \
 	fi
 
 .PHONY: kill-all

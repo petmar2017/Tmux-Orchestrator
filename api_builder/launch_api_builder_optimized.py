@@ -202,7 +202,7 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
         subprocess.run(["tmux", "new-session", "-d", "-s", self.session_name, 
                        "-n", "orchestrator", "-c", str(self.workspace_dir)])
         
-        # Agent configurations
+        # Agent configurations (including DevOps)
         agents = [
             ("lead", "Lead Developer"),
             ("fastapi", "FastAPI Developer"),
@@ -210,7 +210,8 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
             ("make", "Make Builder"),
             ("docs", "Documentation"),
             ("tester", "E2E Tester"),
-            ("jupyter", "Jupyter Dev")
+            ("jupyter", "Jupyter Dev"),
+            ("devops", "DevOps Engineer")
         ]
         
         # Create windows for each agent
@@ -222,66 +223,136 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
         print(f"{self.GREEN}✅ Tmux session created{self.NC}")
         
     def launch_claude_in_window(self, window_num: int, agent_name: str, prompt_content: str):
-        """Launch Claude in a specific window with a customized prompt"""
+        """Launch Claude in a specific window with optimized fast prompt sending"""
         
-        print(f"  🚀 Launching {agent_name} (window {window_num})...", end="", flush=True)
+        print(f"  🚀 Starting {agent_name}...", end="", flush=True)
         
-        # First, ensure we're in the right directory
-        subprocess.run(["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", 
-                       f"cd {self.workspace_dir}", "Enter"])
-        time.sleep(0.3)  # Reduced wait
+        # Step 1: Setup directory and clear screen (combined for speed)
+        setup_commands = [
+            f"cd {self.workspace_dir}",
+            "clear"
+        ]
         
-        # Clear the screen
-        subprocess.run(["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", 
-                       "clear", "Enter"])
-        time.sleep(0.2)  # Reduced wait
+        for cmd in setup_commands:
+            subprocess.run(["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", 
+                           cmd, "Enter"])
+            time.sleep(0.2)  # Reduced wait time
         
-        # Start Claude
+        print(f" initializing...", end="", flush=True)
+        
+        # Step 2: Start Claude
         subprocess.run(["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", 
                        "claude", "Enter"])
-        time.sleep(2)  # Reduced wait for Claude to start
+        time.sleep(1.5)  # Reduced Claude startup wait
         
-        # Send prompt line by line to avoid tmux interpreting newlines as flags
-        lines = prompt_content.split('\n')
+        print(f" briefing...", end="", flush=True)
         
-        # Send each line separately
-        for i, line in enumerate(lines):
-            # For lines starting with -, we need to use -- to stop flag parsing
-            if line.startswith('-'):
-                # Use -- to indicate end of flags, everything after is literal
-                cmd = ["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", "--", line]
+        # Step 3: Send entire prompt at once (MUCH faster than chunking!)
+        # This is the key optimization - send the whole prompt in one go
+        try:
+            # Check if we have the fast message script
+            script_dir = Path(__file__).parent.parent
+            fast_script_path = script_dir / "send-claude-message-fast.sh"
+            regular_script_path = script_dir / "send-claude-message.sh"
+            
+            # Create fast script if it doesn't exist
+            if not fast_script_path.exists():
+                self.create_fast_send_script()
+            
+            # Use the fast script for sending the entire prompt
+            if fast_script_path.exists():
+                os.chmod(str(fast_script_path), 0o755)
+                # Send entire prompt as one message
+                result = subprocess.run(["bash", str(fast_script_path), 
+                                       f"{self.session_name}:{window_num}", 
+                                       prompt_content],
+                                       capture_output=True,
+                                       text=True,
+                                       timeout=5)
+                
+                if result.returncode != 0:
+                    raise Exception(f"Fast send failed: {result.stderr}")
+                    
             else:
-                # Regular lines can use -l flag
-                cmd = ["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", "-l", line]
-            
-            subprocess.run(cmd)
-            
-            # Send C-m (newline) after each line except the last
-            if i < len(lines) - 1:
-                cmd_newline = ["tmux", "send-keys", "-t", f"{self.session_name}:{window_num}", "C-m"]
-                subprocess.run(cmd_newline)
+                # Fallback to chunked sending if fast script not available
+                self.send_prompt_chunked(window_num, prompt_content)
+                
+        except Exception as e:
+            print(f" {self.YELLOW}(using fallback){self.NC}", end="", flush=True)
+            # Fallback to chunked sending
+            self.send_prompt_chunked(window_num, prompt_content)
         
-        # Wait for all lines to register in tmux buffer
+        print(f" {self.GREEN}✅ Ready!{self.NC}")
+    
+    def send_prompt_chunked(self, window_num: int, prompt_content: str):
+        """Fallback chunked sending if fast method fails - optimized to only sleep once at the end"""
+        lines = prompt_content.split('\n')
+        chunk_size = 100  # Larger chunks since we're not sleeping between them
+        
+        # Send all chunks WITHOUT Enter (just the text)
+        for i in range(0, len(lines), chunk_size):
+            chunk = '\n'.join(lines[i:i+chunk_size])
+            if chunk.strip():
+                # Send just the text, no Enter
+                subprocess.run(["tmux", "send-keys", "-t", 
+                              f"{self.session_name}:{window_num}", 
+                              chunk])
+        
+        # Single sleep at the end to let all chunks register
         time.sleep(0.5)
         
-        # CRITICAL: Send final Enter to submit the complete prompt to Claude
+        # Send ONE Enter at the very end to execute everything
         subprocess.run(["tmux", "send-keys", "-t", 
-                      f"{self.session_name}:{window_num}", 
-                      "Enter"])
+                       f"{self.session_name}:{window_num}", "Enter"])
+    
+    def create_fast_send_script(self):
+        """Create an optimized send script that doesn't use sleep"""
+        fast_script = self.base_dir.parent / "send-claude-message-fast.sh"
         
-        print(f" ✅ Ready!")
+        script_content = '''#!/bin/bash
+
+# Fast version of send-claude-message.sh
+# Removes the 0.5s sleep for faster operation
+# Usage: send-claude-message-fast.sh <session:window> <message>
+
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <session:window> <message>"
+    echo "Example: $0 api_builder:3 'Hello Claude!'"
+    exit 1
+fi
+
+WINDOW="$1"
+shift  # Remove first argument, rest is the message
+MESSAGE="$*"
+
+# Send the message and Enter in rapid succession
+tmux send-keys -t "$WINDOW" "$MESSAGE" Enter
+
+echo "Message sent to $WINDOW"
+'''
+        
+        with open(fast_script, 'w') as f:
+            f.write(script_content)
+        
+        os.chmod(str(fast_script), 0o755)
+        return fast_script
         
     def launch_all_agents(self):
         """Launch Claude in all windows with customized prompts"""
         print(f"\n{self.YELLOW}🤖 Launching agents with customized prompts...{self.NC}")
+        print(f"{self.CYAN}This process takes 3-5 minutes as we start Claude in each window.{self.NC}")
+        print(f"{self.CYAN}Each agent needs time to initialize and receive their briefing.{self.NC}\n")
         
         # Read the agent standards
+        print(f"📚 Loading agent standards...", end="", flush=True)
         standards_path = self.prompts_dir / "AGENT_STANDARDS.md"
         if standards_path.exists():
             with open(standards_path, 'r') as f:
                 agent_standards = f.read()
+            print(f" {self.GREEN}✓{self.NC}")
         else:
             agent_standards = ""
+            print(f" {self.YELLOW}(not found, using defaults){self.NC}")
         
         # Read base prompts and customize them
         agents = [
@@ -292,22 +363,50 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
             (4, "make", "Make Command Builder"),
             (5, "docs", "Documentation Developer"),
             (6, "tester", "E2E Tester"),
-            (7, "jupyter", "Jupyter Developer")
+            (7, "jupyter", "Jupyter Developer"),
+            (8, "devops", "DevOps Engineer")
         ]
         
+        print(f"\n{self.YELLOW}Starting agent initialization sequence...{self.NC}")
+        
         # Check if user wants to create GitHub repo
-        create_repo = self.get_user_input("\nCreate GitHub repository? (y/n)", "y")
+        print(f"\n{self.CYAN}📦 Repository Setup{self.NC}")
+        print("-" * 50)
+        create_repo = self.get_user_input("Create GitHub repository? (y/n)", "y")
         repo_name = ""
         if create_repo.lower() == 'y':
             repo_name = self.get_user_input("Repository name", self.project_config['name'].replace(' ', '-').lower())
             self.project_config['github_repo'] = repo_name
+            
+            print(f"\n{self.YELLOW}Checking repository status...{self.NC}", end="", flush=True)
+            
+            # Check if repo already exists locally
+            repo_path = self.workspace_dir / repo_name
+            if repo_path.exists():
+                print(f"\n{self.YELLOW}⚠️  Repository '{repo_name}' already exists at {repo_path}{self.NC}")
+                use_existing = self.get_user_input("Use existing repository? (y/n)", "y")
+                if use_existing.lower() != 'y':
+                    print(f"{self.RED}Please choose a different name or remove the existing repository{self.NC}")
+                    sys.exit(1)
+                self.project_config['use_existing_repo'] = True
+                print(f"{self.GREEN}✓ Using existing repository{self.NC}")
+            else:
+                self.project_config['use_existing_repo'] = False
+                print(f" {self.GREEN}✓ Ready to create new repository{self.NC}")
         
-        print(f"\n{self.CYAN}Starting agent initialization...{self.NC}")
-        print(f"{self.YELLOW}This will take approximately 2-3 minutes for all 8 agents.{self.NC}\n")
+        total_agents = len(agents)
+        print(f"\n{self.CYAN}═══════════════════════════════════════════════════════════════{self.NC}")
+        print(f"{self.CYAN}🤖 Agent Deployment Phase{self.NC}")
+        print(f"{self.CYAN}═══════════════════════════════════════════════════════════════{self.NC}")
+        print(f"\n{self.YELLOW}Launching {total_agents} specialized AI agents...{self.NC}")
+        print(f"{self.YELLOW}Each agent takes 20-30 seconds to initialize and receive briefing.{self.NC}\n")
         
-        agent_count = len(agents)
+        start_time = time.time()
+        
         for idx, (window_num, prompt_file, agent_name) in enumerate(agents, 1):
-            print(f"\n{self.MAGENTA}[Agent {idx}/{agent_count}]{self.NC}")
+            print(f"\n{self.MAGENTA}[Agent {idx}/{total_agents}]{self.NC} {agent_name}")
+            print(f"{'─' * 60}")
+            
             # Read base prompt
             prompt_path = self.prompts_dir / f"prompt_{prompt_file}.md"
             enhanced_prompt_path = self.prompts_dir / f"enhanced_prompt_{prompt_file}.md"
@@ -362,9 +461,31 @@ Please acknowledge that you understand your role, the project requirements, and 
             
             # Launch Claude with customized prompt
             self.launch_claude_in_window(window_num, agent_name, customized_prompt)
-            time.sleep(2)  # Small delay between launches
             
-        print(f"\n{self.GREEN}✅ All agents launched successfully!{self.NC}")
+            # Show progress and time remaining
+            remaining = total_agents - idx
+            if remaining > 0:
+                est_time = remaining * 25  # Estimate 25 seconds per agent
+                minutes = est_time // 60
+                seconds = est_time % 60
+                if minutes > 0:
+                    time_str = f"{minutes}m {seconds}s"
+                else:
+                    time_str = f"{seconds}s"
+                print(f"\n  {self.CYAN}⏱️  Estimated time remaining: {time_str} ({remaining} agents left){self.NC}")
+            
+            time.sleep(1)  # Small delay between launches
+        
+        # Calculate total time taken
+        total_time = int(time.time() - start_time)
+        minutes = total_time // 60
+        seconds = total_time % 60
+        
+        print(f"\n{self.CYAN}═══════════════════════════════════════════════════════════════{self.NC}")
+        print(f"{self.GREEN}✅ All {total_agents} agents launched successfully!{self.NC}")
+        print(f"{self.GREEN}⏱️  Total deployment time: {minutes}m {seconds}s{self.NC}")
+        print(f"{self.CYAN}═══════════════════════════════════════════════════════════════{self.NC}")
+        print(f"\n{self.GREEN}The team is now working autonomously on your {self.project_config['name']} project.{self.NC}")
         
     def display_final_instructions(self):
         """Display instructions for the user"""
