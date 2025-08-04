@@ -210,7 +210,8 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
             ("make", "Make Builder"),
             ("docs", "Documentation"),
             ("tester", "E2E Tester"),
-            ("jupyter", "Jupyter Dev")
+            ("jupyter", "Jupyter Dev"),
+            ("devops", "DevOps Engineer")
         ]
         
         # Create windows for each agent
@@ -292,7 +293,8 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
             (4, "make", "Make Command Builder"),
             (5, "docs", "Documentation Developer"),
             (6, "tester", "E2E Tester"),
-            (7, "jupyter", "Jupyter Developer")
+            (7, "jupyter", "Jupyter Developer"),
+            (8, "devops", "DevOps Engineer")
         ]
         
         # Check if user wants to create GitHub repo
@@ -303,7 +305,7 @@ Test Coverage Target: {self.project_config['test_coverage_target']}%
             self.project_config['github_repo'] = repo_name
         
         print(f"\n{self.CYAN}Starting agent initialization...{self.NC}")
-        print(f"{self.YELLOW}This will take approximately 2-3 minutes for all 8 agents.{self.NC}\n")
+        print(f"{self.YELLOW}This will take approximately 3-4 minutes for all 9 agents.{self.NC}\n")
         
         agent_count = len(agents)
         for idx, (window_num, prompt_file, agent_name) in enumerate(agents, 1):
@@ -372,7 +374,7 @@ Please acknowledge that you understand your role, the project requirements, and 
         print(f"🎉 API Builder Team is Ready!")
         print(f"{'='*70}{self.NC}\n")
         
-        print(f"{self.GREEN}All 8 agents have been launched with customized prompts based on:{self.NC}")
+        print(f"{self.GREEN}All 9 agents have been launched with customized prompts based on:{self.NC}")
         print(f"  • Project: {self.project_config['name']}")
         print(f"  • API Type: {self.project_config['api_type']}")
         print(f"  • Database: {self.project_config['database']}")
@@ -380,7 +382,7 @@ Please acknowledge that you understand your role, the project requirements, and 
         
         print(f"\n{self.YELLOW}To monitor your team:{self.NC}")
         print(f"  1. Attach to session: {self.CYAN}tmux attach -t {self.session_name}{self.NC}")
-        print(f"  2. Switch windows: {self.CYAN}Ctrl+B then [0-7]{self.NC}")
+        print(f"  2. Switch windows: {self.CYAN}Ctrl+B then [0-8]{self.NC}")
         print(f"  3. Detach: {self.CYAN}Ctrl+B then D{self.NC}")
         
         print(f"\n{self.YELLOW}Window Layout:{self.NC}")
@@ -392,6 +394,7 @@ Please acknowledge that you understand your role, the project requirements, and 
         print("  5: Documentation Developer (docs)")
         print("  6: E2E Tester (testing)")
         print("  7: Jupyter Developer (notebooks)")
+        print("  8: DevOps Engineer (deployment & infrastructure)")
         
         print(f"\n{self.MAGENTA}The agents are now working autonomously on your project!{self.NC}")
         print(f"{self.MAGENTA}They will commit code every 30 minutes and coordinate tasks.{self.NC}")
