@@ -6,16 +6,29 @@ Get up and running with Tmux Orchestrator in 5 minutes!
 
 ```bash
 # Verify requirements
-tmux -V         # Should show 3.0+
-claude --version # Should show Claude CLI installed
-python3 --version # Should show 3.6+
-git --version    # Should show git installed
+make check-deps  # Checks all dependencies automatically
 ```
 
-## 1️⃣ One-Line Setup
+## 1️⃣ One-Command Setup & Launch
 
 ```bash
-cd /Users/petermager/Downloads/code/Tmux-Orchestrator && chmod +x *.sh && ./schedule_with_note.sh 1 "Setup complete" "test:0"
+# Complete setup and launch API Builder
+make quick-start
+
+# That's it! This command:
+# ✅ Checks dependencies
+# ✅ Creates directories
+# ✅ Fixes paths
+# ✅ Launches the intelligent API Builder
+```
+
+## Alternative Manual Setup
+
+```bash
+# Step-by-step setup
+make setup       # Initialize everything
+make api-launch  # Launch API Builder
+make api-attach  # Attach to session
 ```
 
 ## 2️⃣ Basic Agent Setup (2 minutes)
@@ -51,32 +64,38 @@ Start by checking existing tmux sessions with: tmux list-sessions
 # Step 4: Detach and let it run
 # Press Ctrl+B, then D
 
-## 📝 Essential Commands
+## 📝 Essential Commands (Now with Make!)
 
 ### Communicate with Agents
 ```bash
-# Send message to any agent
-./send-claude-message.sh session:window "Your message"
+# Send message using make
+make message TARGET=orchestrator:0 MSG="Status update please"
 
-# Example:
+# Or use the script directly
 ./send-claude-message.sh orchestrator:0 "Status update please"
 ```
 
 ### Monitor Agents
 ```bash
+# Monitor all API Builder agents
+make api-monitor
+
+# Check specific agent
+make agent-logs AGENT=1
+
 # List all sessions
-tmux list-sessions
+make tmux-list
 
-# Attach to session
-tmux attach -t orchestrator
-
-# Check agent output
-tmux capture-pane -t orchestrator:0 -p | tail -30
+# Check workspace status
+make workspace-status
 ```
 
 ### Schedule Check-ins
 ```bash
-# Schedule reminder (minutes, note, target)
+# Schedule using make
+make schedule MINUTES=30 NOTE="Check progress" TARGET=orchestrator:0
+
+# Or use the script directly
 ./schedule_with_note.sh 30 "Check progress" "orchestrator:0"
 ```
 

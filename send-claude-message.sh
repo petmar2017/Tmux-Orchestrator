@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 
 # Send message to Claude agent in tmux window
 # Usage: send-claude-message.sh <session:window> <message>

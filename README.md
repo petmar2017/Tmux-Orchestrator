@@ -267,6 +267,126 @@ Key areas for enhancement:
 - Cross-project coordination
 - Novel automation workflows
 
+## 🛠️ Makefile Commands
+
+The project includes a comprehensive Makefile with 50+ commands for complete automation:
+
+### Quick Start Commands
+```bash
+make help           # Show all available commands with descriptions
+make quick-start    # Complete setup and launch API Builder
+make dev           # Quick attach to API Builder session
+```
+
+### Setup & Installation
+```bash
+make setup         # Complete initial setup (dependencies, dirs, paths)
+make check-deps    # Check required dependencies
+make init-dirs     # Initialize directory structure
+make fix-paths     # Fix hardcoded paths in scripts
+```
+
+### API Builder Commands
+```bash
+make api-launch    # Launch API Builder with intelligent setup (RECOMMENDED)
+make api-setup     # Manual API Builder setup
+make api-attach    # Attach to API Builder session
+make api-status    # Check API Builder agent status
+make api-monitor   # Monitor all API Builder agents
+make api-brief AGENT=1 MESSAGE="task"  # Send task to specific agent
+```
+
+### Session Management
+```bash
+make tmux-list     # List all tmux sessions
+make tmux-windows SESSION=api_builder  # List windows in session
+make session-kill SESSION=name         # Kill specific session
+make kill-all      # Kill all tmux sessions (CAUTION!)
+```
+
+### Communication & Monitoring
+```bash
+make message TARGET=api_builder:1 MSG="text"  # Send message to agent
+make schedule MINUTES=30 NOTE="check" TARGET=api_builder:0  # Schedule check-in
+make check-git     # Check git commits in workspace
+make monitor-logs  # Monitor agent logs
+make workspace-status  # Check workspace status
+```
+
+### Testing & Quality
+```bash
+make test          # Run orchestrator tests
+make test-scripts  # Test orchestrator scripts
+make lint          # Lint Python code
+make format        # Format Python code
+make quality-check # Run all quality checks
+```
+
+### Documentation
+```bash
+make docs          # Show available documentation
+make readme        # Display main README
+make update-docs   # Update documentation with current status
+```
+
+### Utilities
+```bash
+make clean         # Clean up temporary files
+make backup        # Backup workspace and configurations
+make restore       # Restore from latest backup
+make reset         # Reset everything (CAUTION!)
+make validate      # Validate orchestrator setup
+```
+
+### Git Shortcuts
+```bash
+make git-status    # Check git status in workspace
+make git-commit MSG="message"  # Commit changes
+make git-log       # Show git log
+```
+
+### Advanced Operations
+```bash
+make agent-logs AGENT=1  # View specific agent logs
+make send-task     # Send initial tasks to Lead Developer
+make status        # Show complete system status
+```
+
+### Example Workflows
+
+#### Starting a New Project
+```bash
+# Complete setup and launch
+make quick-start
+
+# Or step by step:
+make setup
+make api-launch
+make api-attach
+```
+
+#### Monitoring Agents
+```bash
+# Check all agents
+make api-monitor
+
+# Check specific agent
+make agent-logs AGENT=2
+
+# Send message to agent
+make message TARGET=api_builder:2 MSG="Please add user authentication"
+```
+
+#### Managing Sessions
+```bash
+# List all sessions
+make tmux-list
+
+# Kill and restart
+make session-kill SESSION=api_builder
+make api-launch
+```
+
 ## 📄 License
 
 MIT License - Use freely but wisely. Remember: with great automation comes great responsibility.

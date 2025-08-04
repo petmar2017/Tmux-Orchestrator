@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+next_check_note.txt
+registry/logs/*
+registry/sessions/*
+*.log
+
+# API Builder Workspace (contains its own git repo)
+api_builder/workspace/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Environment files
+.env
+*.env.local
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
